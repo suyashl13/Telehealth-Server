@@ -32,6 +32,7 @@ class DoctorDetail(models.Model):
     open_time = models.CharField(max_length=20)
     is_authorized = models.BooleanField(default=False)
     consultation_fee = models.IntegerField(default=0)
+    city = models.CharField(max_length=30, default='')
 
     def __str__(self):
         return self.doctor.name + ' - Hospital Details'

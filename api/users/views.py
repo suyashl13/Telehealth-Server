@@ -85,6 +85,7 @@ def users(request) -> JsonResponse:
         return JsonResponse({'ERR': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@csrf_exempt
 def users_id(request, id):
     if request.method == 'PUT':
         try:
@@ -190,27 +191,27 @@ def signin(request):
             user = CustomUser.objects.get(email=email)
         except:
             return JsonResponse({'ERR': "Account with this email doesnot exsists."}, status=404)
-        try:
-            if user.check_password(password):
-                token = get_token()
-                user.auth_token = token
-                if user.is_doctor:
-                    try:
-                        doc_details = DoctorDetail.objects.get(doctor=user)
-                    except:
-                        return JsonResponse({'auth_token': token,
-                                             'ERR': 'Looks like you have`nt provided hospital details. Please provide details at '
-                                                    + str(request.META['SERVER_PROTOCOL']).lower().split('/')[0]+'://'+str(request.META['REMOTE_ADDR'])+':'+request.META['SERVER_PORT']+'/doctor_details/uid/token/',
-                                             'user': UserSerializers(user).data}, status=401)
-                    return JsonResponse({'auth_token': token, doc_details: DoctorDetailSerializer(doc_details).data,
-                                         user: UserSerializers(user).data})
-                user.save()
-                login(request, user)
-                return JsonResponse(UserSerializers(user).data)
-            else:
-                return JsonResponse({'ERR': 'Invalid auth credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-        except:
-            return JsonResponse({'ERR': 'Unable to login due to server error.'}, status=500)
+        if user.check_password(password):
+            token = get_token()
+            user.auth_token = token
+            user.save()
+            if user.is_doctor:
+                try:
+                    doc_details = DoctorDetail.objects.get(doctor=user)
+                except:
+                    return JsonResponse({'auth_token': token,
+                                         'ERR': 'Looks like you have`nt provided hospital details. Please provide details at '
+                                                + str(request.META['SERVER_PROTOCOL']).lower().split('/')[
+                                                    0] + '://' + str(request.META['REMOTE_ADDR']) + ':' +
+                                                request.META['SERVER_PORT'] + '/doctor_details/',
+                                         'user': UserSerializers(user).data}, status=401)
+                doc_serializer = DoctorDetailSerializer(doc_details, context={'request': request})
+                return JsonResponse({'auth_token': token, 'doc_details': doc_serializer.data,
+                                     'user': UserSerializers(user).data})
+            login(request, user)
+            return JsonResponse(UserSerializers(user).data)
+        else:
+            return JsonResponse({'ERR': 'Invalid auth credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     else:
         return JsonResponse({'ERR': 'Invalid request'}, status=400)
 
@@ -230,3 +231,47 @@ def signout(request, id):
 
     else:
         return JsonResponse({'ERR': 'Invalid request'}, status=400)
+
+
+@csrf_exempt
+def doctor_details(request):
+    if request.method == 'POST':
+        res = check_authentication(request)
+        if res.status_code != 200:
+            return res
+        else:
+            del res
+
+        user = CustomUser.objects.get(pk=request.headers['uid'])
+        try:
+            doctor = user
+            hospital_photos = request.FILES['hospital_photos']
+            hospital_name = request.POST['hospital_name']
+            hospital_address = request.POST['hospital_address']
+            specializations = request.POST['specializations']
+            certificate = request.FILES['certificate']
+            bio = request.POST['bio']
+            open_time = request.POST['open_time']
+            consultation_fee = request.POST['consultation_fee']
+            city = request.POST['city']
+        except:
+            return JsonResponse({'ERR': 'Parse error.'}, status=500)
+
+        try:
+            doctor_detail = DoctorDetail(doctor=doctor, hospital_photos=hospital_photos, hospital_name=hospital_name,
+                                         hospital_address=hospital_address, specializations=specializations,
+                                         certificate=certificate,
+                                         bio=bio, open_time=open_time,
+                                         consultation_fee=consultation_fee,
+                                         city=city)
+            doctor_detail.save()
+            return JsonResponse(DoctorDetailSerializer(doctor_detail, context={'request': request}).data)
+        except:
+            return JsonResponse({'ERR': 'Unable to save details.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if request.method == 'GET':
+        try:
+            doctors = DoctorDetail.objects.all()
+            return JsonResponse(DoctorDetailSerializer(doctors, many=True).data, safe=False)
+        except:
+            return JsonResponse({'ERR': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

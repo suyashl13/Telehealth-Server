@@ -1,10 +1,10 @@
 from .models import CustomUser, DoctorDetail
-from rest_framework.serializers import HyperlinkedModelSerializer, ModelSerializer
-from django.contrib.auth.hashers import make_password
-from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.serializers import HyperlinkedModelSerializer, ImageField
 
 
 class UserSerializers(HyperlinkedModelSerializer):
+    profile_photo = ImageField(max_length=None, allow_empty_file=True, required=False)
+
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         instance = self.Meta.model(**validated_data)
@@ -27,10 +27,18 @@ class UserSerializers(HyperlinkedModelSerializer):
     class Meta:
         model = CustomUser
         extra_kwargs = {'password': {'write_only': True}}
-        fields = ('id', 'name', 'email', 'password', 'phone', 'auth_token', 'is_doctor')
+        fields = (
+            'id', 'name', 'email', 'password', 'phone', 'auth_token', 'is_doctor', 'profile_photo', 'gender',
+            'birth_year')
 
 
 class DoctorDetailSerializer(HyperlinkedModelSerializer):
     class Meta:
         model = DoctorDetail
-        fields = '__all__'
+        fields = ['hospital_photos',
+                  'hospital_name',
+                  'hospital_address',
+                  'specializations',
+                  'certificate',
+                  'bio',
+                  'open_time', 'consultation_fee', 'city']
