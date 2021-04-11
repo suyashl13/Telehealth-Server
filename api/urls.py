@@ -3,5 +3,6 @@ from .views import home
 
 urlpatterns = [
     path('', home),
-    path('users/', include('api.users.urls'))
+    path('users/', include('api.users.urls')),
+    path('appointments/', include('api.appointments.urls')),
 ]

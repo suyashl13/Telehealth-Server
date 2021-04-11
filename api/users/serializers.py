@@ -35,10 +35,10 @@ class UserSerializers(HyperlinkedModelSerializer):
 class DoctorDetailSerializer(HyperlinkedModelSerializer):
     class Meta:
         model = DoctorDetail
-        fields = ['hospital_photos',
+        fields = ['id', 'hospital_photos',
                   'hospital_name',
                   'hospital_address',
                   'specializations',
                   'certificate',
-                  'bio',
+                  'bio', 'is_authorized',
                   'open_time', 'consultation_fee', 'city']

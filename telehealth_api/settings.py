@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'api.users',
+    'api.appointments',
 ]
 
 REST_FRAMEWORK = {

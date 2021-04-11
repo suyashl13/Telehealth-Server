@@ -1,5 +1,5 @@
 from django.http.response import JsonResponse
-from api.users.models import CustomUser
+from api.users.models import CustomUser, DoctorDetail
 
 
 # Create your views here.
@@ -20,10 +20,14 @@ def check_authentication(request, only_doctor: bool = False) -> JsonResponse:
         return JsonResponse({'ERR': 'Invalid user id.'}, status=404)
 
     if only_doctor:
-        if not user.is_authorized:
-            return JsonResponse({'ERR': 'Doctor is unauthorized'}, status=403)
-        if not user.is_doctor:
-            return JsonResponse({'ERR': 'Users not allowed'}, status=401)
+        try:
+            doc_details = DoctorDetail.objects.get(doctor=user)
+            if not doc_details.is_authorized:
+                return JsonResponse({'ERR': 'Doctor is unauthorized'}, status=403)
+            if not user.is_doctor:
+                return JsonResponse({'ERR': 'Users not allowed'}, status=401)
+        except Exception as e:
+            return JsonResponse({'ERR': str(e)}, status=500)
 
     try:
         if user.auth_token != auth_token:
