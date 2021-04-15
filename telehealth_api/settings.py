@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'api',
     'api.users',
     'api.appointments',
+    'api.treatment',
 ]
 
 REST_FRAMEWORK = {
