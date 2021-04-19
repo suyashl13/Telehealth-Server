@@ -23,9 +23,6 @@ class CustomUser(AbstractUser):
 
 class DoctorDetail(models.Model):
     doctor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, unique=True)
-    hospital_photos = models.ImageField(upload_to='profiles/')
-    hospital_name = models.CharField(max_length=100)
-    hospital_address = models.CharField(max_length=100, default='')
     specializations = models.CharField(max_length=150, default='')
     certificate = models.FileField(upload_to='certs/')
     bio = models.CharField(max_length=150)
