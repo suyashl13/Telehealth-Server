@@ -24,7 +24,11 @@ SECRET_KEY = '_+ivm^-k$p^-u4^0%dgp_a6tcv49e@k)5zgm4=)#ny&(ze!c&r'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+CORS_ORIGIN_WHITELIST = (
+  'http://localhost:8000',
+)
 
 # Application definition
 
@@ -35,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'rest_framework',
     'corsheaders',
     'api',
@@ -83,6 +88,21 @@ TEMPLATES = [
     },
 ]
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'abc',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'uid',
+    'authtoken'
+]
+
 WSGI_APPLICATION = 'telehealth_api.wsgi.application'
 
 # Database
@@ -93,6 +113,17 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+
+ASGI_APPLICATION = "telehealth_api.asgi.application"
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
 }
 
 # Password validation

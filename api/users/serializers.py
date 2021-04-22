@@ -28,7 +28,7 @@ class UserSerializers(HyperlinkedModelSerializer):
         model = CustomUser
         extra_kwargs = {'password': {'write_only': True}}
         fields = (
-            'id', 'name', 'email', 'password', 'phone', 'auth_token', 'is_doctor', 'profile_photo', 'gender',
+            'id', 'name', 'email', 'password', 'phone', 'is_doctor', 'profile_photo', 'gender',
             'birth_year')
 
 

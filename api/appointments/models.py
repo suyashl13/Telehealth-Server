@@ -9,6 +9,7 @@ class AptToken(models.Model):
     symptoms = models.CharField(max_length=200)
     note = models.CharField(max_length=50, blank=True, null=True)
     date_expected = models.DateField()
+    slot = models.CharField(max_length=10, default='')
     time_posted = models.DateTimeField(auto_now=True)
 
     def __str__(self):

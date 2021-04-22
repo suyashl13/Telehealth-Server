@@ -6,6 +6,7 @@ from ..users.models import CustomUser, DoctorDetail
 from ..views import check_authentication
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
+from datetime import date
 
 
 # Create your views here.
@@ -28,7 +29,7 @@ def appointment_token(request):
                 return res
             else:
                 del res
-            user = CustomUser.objects.get(pk=request.headers['uid'])
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
 
@@ -61,7 +62,6 @@ def appointment_token(request):
             return JsonResponse({'ERR': str(e)}, status=500)
 
     if request.method == 'GET':
-        # Validations
         # User authentication validation.
         try:
             res = check_authentication(request)
@@ -69,7 +69,7 @@ def appointment_token(request):
                 return res
             else:
                 del res
-            user = CustomUser.objects.get(pk=request.headers['uid'])
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
 
@@ -77,7 +77,14 @@ def appointment_token(request):
             try:
                 doc_details = DoctorDetail.objects.get(doctor=user)
                 apt_tokens = AptToken.objects.filter(doctor_details=doc_details)
-                return JsonResponse(AptTokenSerializer(apt_tokens, many=True).data, safe=False)
+                all_details = []
+                for token in apt_tokens.values():
+                    patient = CustomUser.objects.get(pk=token['patient_id'])
+                    token['patient_name'] = patient.name
+                    token['patient_age'] = int(date.today().year) - patient.birth_year
+                    token['patient_gender'] = patient.gender
+                    all_details.append(token)
+                return JsonResponse(all_details, safe=False)
             except Exception as e:
                 return JsonResponse({'ERR': str(e)}, status=500)
         else:
@@ -101,7 +108,7 @@ def appointment_token_id(request, id):
                 return res
             else:
                 del res
-            user = CustomUser.objects.get(pk=request.headers['uid'])
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
 
@@ -146,7 +153,7 @@ def appointment(request):
 
         # Get DoctorDetails and validate:
         try:
-            user = CustomUser.objects.get(pk=request.headers['uid'])
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
             doc_details = DoctorDetail.objects.get(doctor=user)
             if not doc_details.is_authorized:
                 return JsonResponse({'ERR': 'Unauthorized doctor.'}, status=401)
@@ -185,7 +192,7 @@ def appointment(request):
 
         # Get DoctorDetails and validate:
         try:
-            user = CustomUser.objects.get(pk=request.headers['uid'])
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
 
@@ -203,4 +210,5 @@ def appointment(request):
             return JsonResponse({'ERR': str(e)}, status=500)
     else:
         return JsonResponse({'ERR': 'Invalid request method.'}, status=405)
+
 

@@ -7,12 +7,12 @@ def home(request):
     return JsonResponse({'INFO': 'api home'})
 
 
-def check_authentication(request, only_doctor: bool = False) -> JsonResponse:
+def check_authentication(request: object, only_doctor: bool = False) -> JsonResponse:
     try:
-        uid = request.headers['uid']
-        auth_token = request.headers['authtoken']
-    except:
-        return JsonResponse({'ERR': 'Header badly formatted.'}, status=400)
+        uid = request.headers['Uid']
+        auth_token = request.headers['Authtoken']
+    except Exception as e:
+        return JsonResponse({'ERR': str(e)}, status=400)
 
     try:
         user = CustomUser.objects.get(pk=uid)

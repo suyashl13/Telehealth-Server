@@ -70,7 +70,8 @@ def users(request) -> JsonResponse:
             new_user.save()
             login(request, user=new_user)
             user_serializer = UserSerializers(new_user, context={'request': request}, )
-            return JsonResponse(user_serializer.data, status=status.HTTP_200_OK)
+            return JsonResponse({'auth_token': new_user.auth_token, 'user': user_serializer.data},
+                                status=status.HTTP_200_OK)
         except Exception as e:
             return JsonResponse({'ERR': str(e)},
                                 status=500)
@@ -79,7 +80,7 @@ def users(request) -> JsonResponse:
         try:
             usrs = get_user_model()
             usrs = usrs.objects.filter(is_doctor=True).values()
-        except:
+        except Exception:
             return JsonResponse({'ERR': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         for i in usrs:
             i.pop('auth_token')
@@ -94,27 +95,25 @@ def users(request) -> JsonResponse:
 
 @csrf_exempt
 def users_id(request, id):
-    if request.method == 'PUT':
+    if request.method == 'POST':
         try:
-            name = request.PUT['name']
-            email = request.PUT['email']
-            phone = request.PUT['phone']
-            birth_year = request.PUT['age']
-            gender = request.PUT['gender']
-            password = request.PUT['password']
+            email = request.POST['email']
+        except Exception as e:
+            email = None
+        try:
+            phone = request.POST['phone']
+        except Exception:
+            phone = None
+        try:
+            password = request.POST['password']
+        except Exception:
+            password = None
+        try:
             profile_photo = request.FILES['profile_photo']
-        except:
-            pass
+        except Exception:
+            profile_photo = None
 
         # Validations
-        if len(name.split(' ')) >= 3:
-            return JsonResponse({'ERR': 'Name badly formated.'}, status=status.HTTP_400_BAD_REQUEST)
-        if len(password) < 6:
-            return JsonResponse({'ERR': 'Password should be greater than 6 chars.'}, status=status.HTTP_400_BAD_REQUEST)
-        if re.match("//\b[\w\.-]+@[\w\.-]+\.\w{2,4}\b/gi", email):
-            return JsonResponse({"ERR": "Enter a valid email."}, status=status.HTTP_400_BAD_REQUEST)
-        if len(phone) < 10 or len(phone) > 12:
-            return JsonResponse({'ERR': 'Invalid phone number.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Authentication check
         res = check_authentication(request)
@@ -124,28 +123,23 @@ def users_id(request, id):
             del res
 
         # Update usermodel
-        try:
-            user_model = get_user_model()
-            user = user_model.objects.get(pk=id)
-            if user.auth_token != request.headers['Authtoken']:
-                return JsonResponse({'ERR': 'Action not allowed.'}, status=401)
-        except:
-            return JsonResponse({'ERR': 'User not found.'}, status=404)
 
         try:
-            user.name = name
-            user.birth_year = int(birth_year)
-            user.gender = gender
-            user.email = email
-            user.phone = phone
-            user.set_password(raw_password=password)
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
+            if email is not None:
+                if user.email != email:
+                    user.email = email
+            if phone is not None:
+                if user.phone != phone:
+                    user.phone = phone
+            if password is not None:
+                user.set_password(raw_password=password)
             if profile_photo is not None:
                 user.profile_photo = profile_photo
             user.save()
-        except:
-            return JsonResponse({'ERR': 'Unable to update user details'}, status=400)
-
-        return JsonResponse(UserSerializers(user).data)
+            return JsonResponse(UserSerializers(user, context={'request': request}).data)
+        except Exception as e:
+            return JsonResponse({'ERR': str(e)}, status=500)
 
     if request.method == 'GET':
         # Authentication check
@@ -160,6 +154,18 @@ def users_id(request, id):
             user = user_model.objects.get(pk=id)
             if user.auth_token != request.headers['Authtoken']:
                 return JsonResponse({'ERR': 'Action not allowed.'}, status=401)
+
+            if user.is_doctor:
+                try:
+                    doctor_detls = DoctorDetail.objects.get(doctor=user)
+                    return JsonResponse(
+                        {'doctor_details': DoctorDetailSerializer(doctor_detls, context={'request': request}).data,
+                         'user': UserSerializers(user, context={'request': request}).data})
+                except Exception as e:
+                    if str(e) == 'DoctorDetail matching query does not exist.':
+                        return JsonResponse({'doctor_details': False, 'user': UserSerializers(user).data})
+                    else:
+                        return JsonResponse({'ERR': str(e)}, status=500)
             return JsonResponse(UserSerializers(user).data)
         except:
             return JsonResponse({'ERR': 'User not found.'}, status=404)
@@ -182,7 +188,7 @@ def users_id(request, id):
         except:
             return JsonResponse({'ERR': 'User not found.'}, status=404)
 
-    if request.method != 'DELETE' and request.method != 'PUT' and request.method != 'GET':
+    if request.method != 'DELETE' and request.method != 'POST' and request.method != 'GET':
         return JsonResponse({'ERR': 'Invalid request.'}, status=400)
 
 
@@ -192,8 +198,8 @@ def signin(request):
         try:
             email = request.POST['email']
             password = request.POST['password']
-        except:
-            return JsonResponse({'ERR': "Unable to parse request."})
+        except Exception as e:
+            return JsonResponse({'ERR': "Parse Error on" + str(e)}, status=400)
 
         try:
             user = CustomUser.objects.get(email=email)
@@ -209,14 +215,15 @@ def signin(request):
                     doctor_detls = DoctorDetail.objects.get(doctor=user)
                     return JsonResponse(
                         {'doctor_details': DoctorDetailSerializer(doctor_detls, context={'request': request}).data,
-                         'user': UserSerializers(user).data})
+                         'user': UserSerializers(user).data, 'auth_token': token})
                 except Exception as e:
                     if str(e) == 'DoctorDetail matching query does not exist.':
-                        return JsonResponse({'doctor_details': False, 'user': UserSerializers(user).data})
+                        return JsonResponse(
+                            {'doctor_details': False, 'user': UserSerializers(user).data, 'auth_token': token})
                     else:
                         return JsonResponse({'ERR': str(e)}, status=500)
             login(request, user)
-            return JsonResponse(UserSerializers(user).data)
+            return JsonResponse({'auth_token': token, 'user': UserSerializers(user).data})
         else:
             return JsonResponse({'ERR': 'Invalid auth credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     else:
@@ -283,3 +290,46 @@ def doctor_details(request):
     elif request.method == 'OPTIONS':
         print(request.headers)
         return JsonResponse({'ERR', "Invalid request method."}, status=403)
+
+
+def check_auth(request):
+    if request.method == 'GET':
+        res = check_authentication(request)
+        if res.status_code == 200:
+            return JsonResponse({'Auth': True})
+        else:
+            return JsonResponse({'Auth': False})
+
+
+@csrf_exempt
+def doctor_details_id(request, d_id):
+    if request.method == 'POST':
+        res = check_authentication(request)
+        if res.status_code != 200:
+            return res
+        else:
+            del res
+
+        user = CustomUser.objects.get(pk=request.headers['Uid'])
+        try:
+            specializations = request.POST['specializations']
+            bio = request.POST['bio']
+            open_time = request.POST['open_time']
+            consultation_fee = request.POST['consultation_fee']
+            city = request.POST['city']
+        except Exception:
+            return JsonResponse({'ERR': 'Parse error.'}, status=500)
+
+        try:
+            doctor_detail = DoctorDetail.objects.get(pk=d_id)
+            if doctor_detail.doctor != user:
+                return JsonResponse({'ERR': "Detected Unauthorized Access."}, status=401)
+            doctor_detail.specializations = specializations
+            doctor_detail.bio = bio
+            doctor_detail.open_time = open_time
+            doctor_detail.consultation_fee = consultation_fee
+            doctor_detail.city = city
+            doctor_detail.save()
+            return JsonResponse(DoctorDetailSerializer(doctor_detail, context={'request': request}).data)
+        except Exception as e:
+            return JsonResponse({'ERR': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
