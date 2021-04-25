@@ -7,6 +7,7 @@ from ..users.models import CustomUser, DoctorDetail
 from .models import Treatment, Medicine
 from .serilizers import TreatmentSerializer, MedicineSerializer
 from django.views.decorators.csrf import csrf_exempt
+from ..users.serializers import UserSerializers
 
 
 # Create your views here.
@@ -19,10 +20,13 @@ def treatment(request):
         else:
             del res
         try:
-            appointment = request.POST['appointment']
+            try:
+                appointment = request.POST['appointment']
+            except Exception as e:
+                return JsonResponse({'ERR': str(e)}, 400)
             precautions = request.POST['precautions']
         except Exception:
-            pass
+            precautions = None
 
         try:
             doc_user = CustomUser.objects.get(id=request.headers['Uid'])
@@ -32,6 +36,8 @@ def treatment(request):
 
         try:
             appt = Appointment.objects.get(id=appointment)
+            appt.is_treated = True
+            appt.save()
             if appt.token.doctor_details != doc_details:
                 return JsonResponse({'ERR': 'Unauthorized Access to route.'}, status=401)
         except Exception as e:
@@ -43,6 +49,7 @@ def treatment(request):
             trtmt.doctor = appt.token.doctor_details
             trtmt.patient = appt.token.patient
             trtmt.precautions = precautions
+            trtmt.is_treated = True
             if len(Treatment.objects.filter(appointment=appt)) != 0:
                 return JsonResponse({'ERR': 'Already treated.'}, status=401)
             trtmt.save()
@@ -65,10 +72,17 @@ def treatment(request):
         try:
             if user.is_doctor:
                 doc_details = DoctorDetail.objects.get(doctor=user)
-                treatments = Treatment.objects.filter(doctor=doc_details, is_treated=False)
-                return JsonResponse(TreatmentSerializer(treatments, many=True).data, safe=False)
+                treatments = Treatment.objects.filter(doctor=doc_details)
+                all_treatments = []
+                for trtmt in treatments:
+                    tmt = dict(TreatmentSerializer(trtmt).data)
+                    tmt['symptoms'] = trtmt.appointment.token.symptoms
+                    tmt['patient'] = dict(UserSerializers(trtmt.patient).data)
+                    tmt['medecines'] = get_meds_by_treatment_id(tmt['id'])
+                    all_treatments.append(tmt)
+                return JsonResponse(all_treatments, safe=False)
             else:
-                treatments = Treatment.objects.filter(patient=user, is_treated=False)
+                treatments = Treatment.objects.filter(patient=user)
                 return JsonResponse(TreatmentSerializer(treatments, many=False).data, safe=True)
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
@@ -86,15 +100,19 @@ def medicine_id(request, id):
             del res
 
         try:
-            medicine = request.POST['medicine']
-            intake_quantity = request.POST['intake_quantity']
-            total_quantity = request.POST['total_quantity']
-            intake_time_1 = request.POST['intake_time_1']
-            intake_time_2 = request.POST['intake_time_2']
-            intake_time_3 = request.POST['intake_time_3']
+            try:
+                medicine = request.POST['medicine_name']
+                intake_quantity = request.POST['intake_quantity']
+                duration = request.POST['duration']
+                note = request.POST['note']
+                intake_time_1 = request.POST['intake_time_1']
+                intake_time_2 = request.POST['intake_time_2']
+                intake_time_3 = request.POST['intake_time_3']
+            except Exception as e:
+                return JsonResponse({'ERR': "Invalid " + str(e)}, status=400)
             intake_time_4 = request.POST['intake_time_4']
-        except:
-            pass
+        except Exception:
+            intake_time_4 = None
 
         try:
             intake_time_1_obj = datetime.strptime(intake_time_1, '%H:%M').time()
@@ -117,7 +135,8 @@ def medicine_id(request, id):
             med.treatment = treatment
             med.medicine = medicine
             med.intake_quantity = intake_quantity
-            med.total_quantity = total_quantity
+            med.duration = duration
+            med.note = note
             med.intake_time_1 = intake_time_1_obj
             med.intake_time_2 = intake_time_2_obj
             med.intake_time_3 = intake_time_3_obj
@@ -127,9 +146,10 @@ def medicine_id(request, id):
             except Exception:
                 pass
             med.save()
-            return JsonResponse({'INFO': 'Successfully added med.', 'Med': MedicineSerializer(med).data}, status=200)
+            return JsonResponse({'INFO': 'Successfully added med.', 'med': MedicineSerializer(med).data}, status=200)
         except Exception as e:
             return JsonResponse({'ERR2': str(e)}, status=500)
+
     if request.method == 'GET':
         res = check_authentication(request, only_doctor=False)
         if res.status_code != 200:
@@ -203,4 +223,15 @@ def treatment_id(request, id):
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
     else:
-        return JsonResponse({'ERR': 'Invalid request method.'})
+        return JsonResponse({'ERR': 'Invalid request method.'}, status=400)
+
+
+# Dependent Methods.
+def get_meds_by_treatment_id(treatment_id: int):
+    meds = Medicine.objects.filter(treatment=Treatment.objects.get(pk=treatment_id))
+    all_meds = []
+    for med in meds:
+        d_med = dict(MedicineSerializer(med).data)
+        all_meds.append(d_med)
+    del meds
+    return all_meds

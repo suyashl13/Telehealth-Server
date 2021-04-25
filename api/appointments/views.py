@@ -7,6 +7,7 @@ from ..views import check_authentication
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date
+from ..users.serializers import UserSerializers
 
 
 # Create your views here.
@@ -17,6 +18,7 @@ def appointment_token(request):
             doctor_id = request.POST['doctor_id']
             symptoms = request.POST['symptoms']
             note = request.POST['note']
+            slot = request.POST['slot']
             r_date = request.POST['date_expected']
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -43,7 +45,7 @@ def appointment_token(request):
             return JsonResponse({'ERR': 'Object not found.'}, status=404)
         # Date validation
         try:
-            date_expected = datetime.strptime(r_date, '%d/%m/%Y').date()
+            date_expected = datetime.strptime(r_date, '%d-%m-%Y').date()
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=400)
 
@@ -54,6 +56,7 @@ def appointment_token(request):
                 apt_token.note = note
             apt_token.doctor_details = doctor_details
             apt_token.patient = user
+            apt_token.slot = slot
             apt_token.symptoms = symptoms
             apt_token.date_expected = date_expected
             apt_token.save()
@@ -76,7 +79,7 @@ def appointment_token(request):
         if user.is_doctor:
             try:
                 doc_details = DoctorDetail.objects.get(doctor=user)
-                apt_tokens = AptToken.objects.filter(doctor_details=doc_details)
+                apt_tokens = AptToken.objects.filter(doctor_details=doc_details, is_assigned=False)
                 all_details = []
                 for token in apt_tokens.values():
                     patient = CustomUser.objects.get(pk=token['patient_id'])
@@ -164,7 +167,7 @@ def appointment(request):
 
         # Parse datetime object
         try:
-            date_time_obj = datetime.strptime(datetime_allocated, '%d/%m/%Y %H:%M:%S')
+            date_time_obj = datetime.strptime(datetime_allocated, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=400)
 
@@ -172,6 +175,8 @@ def appointment(request):
         try:
             appt = Appointment()
             appt.token = apt_token
+            apt_token.is_assigned = True
+            apt_token.save()
             if note != '':
                 appt.note = note
             appt.datetime_allocated = date_time_obj
@@ -201,8 +206,16 @@ def appointment(request):
                 doc_details = DoctorDetail.objects.get(doctor=user)
                 if not doc_details.is_authorized:
                     return JsonResponse({'ERR': 'Unauthorized doctor.'}, status=401)
-                doctor_appointments = Appointment.objects.filter(token__doctor_details=doc_details)
-                return JsonResponse(AppointmentSerializer(doctor_appointments, many=True).data, safe=False)
+                doctor_appointments = Appointment.objects.filter(token__doctor_details=doc_details, is_treated=False)
+                appointment_data = []
+                for appt in doctor_appointments:
+                    apptmt = dict(AppointmentSerializer(appt).data)
+                    apptmt['patient_name'] = appt.token.patient.name
+                    apptmt['patient_note'] = appt.token.note
+                    apptmt['patient_age'] = int(date.today().year) - appt.token.patient.birth_year
+                    apptmt['patient_symptoms'] = appt.token.symptoms
+                    appointment_data.append(apptmt)
+                return JsonResponse(appointment_data, safe=False)
             else:
                 patient_appointments = Appointment.objects.filter(token__patient=user)
                 return JsonResponse(AppointmentSerializer(patient_appointments, many=True).data, safe=False)
@@ -212,3 +225,40 @@ def appointment(request):
         return JsonResponse({'ERR': 'Invalid request method.'}, status=405)
 
 
+def appointment_id(request, id):
+    if request.method == 'GET':
+        # Validations
+        res = check_authentication(request)
+        if res.status_code != 200:
+            return res
+        else:
+            del res
+
+        # Get required objects.
+        try:
+            user = CustomUser.objects.get(pk=request.headers['Uid'])
+        except Exception as e:
+            return JsonResponse({"ERR": str(e)}, status=500)
+
+        try:
+            appointment_obj = Appointment.objects.get(pk=id)
+        except Exception as e:
+            return JsonResponse({"ERR": str(e)}, status=404)
+
+        # Authorization Validations:
+        if user.is_doctor:
+            if appointment_obj.token.doctor_details.doctor != user:
+                return JsonResponse({"ERR": "Unauthorized access to this route."}, status=401)
+        elif appointment_obj.token.patient != user:
+            return JsonResponse({"ERR": "Unauthorized access to this route."}, status=401)
+
+        # Return data to authorized users
+        if user.is_doctor:
+            patient = appointment_obj.token.patient
+            apptmt = dict(AppointmentSerializer(appointment_obj).data)
+            apptmt['patient_note'] = appointment_obj.token.note
+            apptmt['patient_slot'] = appointment_obj.token.slot
+            apptmt['patient_symptoms'] = appointment_obj.token.symptoms
+            return JsonResponse({'patient': UserSerializers(patient, context={'request': request}).data, 'appointment': apptmt})
+        else:
+            return JsonResponse(AppointmentSerializer(appointment_obj).data)

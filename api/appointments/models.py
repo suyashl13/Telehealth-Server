@@ -9,7 +9,8 @@ class AptToken(models.Model):
     symptoms = models.CharField(max_length=200)
     note = models.CharField(max_length=50, blank=True, null=True)
     date_expected = models.DateField()
-    slot = models.CharField(max_length=10, default='')
+    slot = models.CharField(max_length=10, default='', blank=False)
+    is_assigned = models.BooleanField(default=False)
     time_posted = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -21,3 +22,4 @@ class Appointment(models.Model):
     note = models.CharField(max_length=52, blank=True, null=True)
     datetime_allocated = models.DateTimeField()
     time_posted = models.DateTimeField(auto_now=True)
+    is_treated = models.BooleanField(default=False)

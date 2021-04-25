@@ -17,6 +17,6 @@ class AppointmentSerializer(ModelSerializer):
         model = Appointment
         fields = (
             'id', 'token',
-            'note',
+            'note', 'is_treated',
             'datetime_allocated', 'time_posted',
         )

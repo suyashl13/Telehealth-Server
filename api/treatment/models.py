@@ -9,7 +9,7 @@ class Treatment(models.Model):
     doctor = models.ForeignKey(DoctorDetail, on_delete=models.CASCADE)
 
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, unique=True)
-    precautions = models.CharField(max_length=100)
+    precautions = models.CharField(max_length=100, blank=True, null=True)
 
     date_created = models.DateField(auto_now=True)
     is_treated = models.BooleanField(default=False)
@@ -19,7 +19,8 @@ class Medicine(models.Model):
     treatment = models.ForeignKey(Treatment, on_delete=models.CASCADE)
     medicine = models.CharField(max_length=80)
     intake_quantity = models.CharField(max_length=10)
-    total_quantity = models.CharField(max_length=10,default='')
+    duration = models.CharField(max_length=10, default='')
+    note = models.CharField(max_length=50, default='')
 
     intake_time_1 = models.TimeField()
     intake_time_2 = models.TimeField()

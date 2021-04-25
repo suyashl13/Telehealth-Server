@@ -32,4 +32,4 @@ class DoctorDetail(models.Model):
     city = models.CharField(max_length=30, default='')
 
     def __str__(self):
-        return self.doctor.name + ' - Hospital Details'
+        return self.doctor.name + f' ({self.id}) - Hospital Details'
