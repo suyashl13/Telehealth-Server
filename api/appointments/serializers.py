@@ -5,11 +5,16 @@ from .models import AptToken, Appointment
 class AptTokenSerializer(ModelSerializer):
     class Meta:
         model = AptToken
-        fields = ('id', 'doctor_details',
-                  'patient',
-                  'symptoms', 'note',
-                  'date_expected',
-                  'time_posted')
+        fields = (
+            'doctor_details',
+            'patient',
+            'symptoms',
+            'note',
+            'date_expected',
+            'slot',
+            'is_assigned',
+            'time_posted',
+        )
 
 
 class AppointmentSerializer(ModelSerializer):

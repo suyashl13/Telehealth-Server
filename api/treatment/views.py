@@ -49,7 +49,6 @@ def treatment(request):
             trtmt.doctor = appt.token.doctor_details
             trtmt.patient = appt.token.patient
             trtmt.precautions = precautions
-            trtmt.is_treated = True
             if len(Treatment.objects.filter(appointment=appt)) != 0:
                 return JsonResponse({'ERR': 'Already treated.'}, status=401)
             trtmt.save()
@@ -83,7 +82,16 @@ def treatment(request):
                 return JsonResponse(all_treatments, safe=False)
             else:
                 treatments = Treatment.objects.filter(patient=user)
-                return JsonResponse(TreatmentSerializer(treatments, many=False).data, safe=True)
+                all_treatments = []
+                for trtmt in treatments:
+                    tmt = dict(TreatmentSerializer(trtmt).data)
+                    tmt['symptoms'] = trtmt.appointment.token.symptoms
+                    tmt['doctor'] = trtmt.appointment.token.doctor_details.doctor.name
+                    tmt['doctor_specialization'] = trtmt.appointment.token.doctor_details.specializations
+                    tmt['patient'] = dict(UserSerializers(trtmt.patient).data)
+                    tmt['medecines'] = get_meds_by_treatment_id(tmt['id'])
+                    all_treatments.append(tmt)
+                return JsonResponse(all_treatments, safe=False)
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
     else:
@@ -148,7 +156,7 @@ def medicine_id(request, id):
             med.save()
             return JsonResponse({'INFO': 'Successfully added med.', 'med': MedicineSerializer(med).data}, status=200)
         except Exception as e:
-            return JsonResponse({'ERR2': str(e)}, status=500)
+            return JsonResponse({'ERR': str(e)}, status=500)
 
     if request.method == 'GET':
         res = check_authentication(request, only_doctor=False)
@@ -176,14 +184,14 @@ def medicine_id(request, id):
 
 @csrf_exempt
 def treatment_id(request, id):
-    if request.method == 'PUT':
-        res = check_authentication(request, only_doctor=True)
+    if request.method == 'POST':
+        res = check_authentication(request)
         if res.status_code != 200:
             return res
         else:
             del res
         try:
-            is_completed = request.PUT['is_completed']
+            is_completed = request.POST['is_completed']
             if is_completed == 'true':
                 is_completed = True
             else:
@@ -193,10 +201,14 @@ def treatment_id(request, id):
 
         try:
             user = CustomUser.objects.get(id=request.headers['Uid'])
-            doc_user = CustomUser.objects.get(id=request.headers['Uid'])
-            doc_details = DoctorDetail.objects.get(doctor=doc_user)
+            if user.is_doctor:
+                doc_user = CustomUser.objects.get(id=request.headers['Uid'])
+                doc_details = DoctorDetail.objects.get(doctor=doc_user)
+                treatment = Treatment.objects.get(id=id)
+                treatment.is_treated = is_completed
+                treatment.save()
             treatment = Treatment.objects.get(id=id)
-            if treatment.patient != user or treatment.doctor != doc_details:
+            if treatment.patient == user:
                 treatment.is_treated = is_completed
                 treatment.save()
                 return JsonResponse(TreatmentSerializer(treatment).data)

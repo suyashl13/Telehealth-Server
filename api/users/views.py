@@ -37,7 +37,7 @@ def users(request) -> JsonResponse:
             return JsonResponse({'ERR': str(e)}, status=400)
 
         # Validations
-        if len(name.split(' ')) >= 3:
+        if len(name.split(' ')) >= 4:
             return JsonResponse({'ERR': 'Name badly formated.'}, status=status.HTTP_400_BAD_REQUEST)
         if len(password) < 6:
             return JsonResponse({'ERR': 'Password should be greater than 6 chars.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -123,7 +123,6 @@ def users_id(request, id):
             del res
 
         # Update usermodel
-
         try:
             user = CustomUser.objects.get(pk=request.headers['Uid'])
             if email is not None:

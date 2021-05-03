@@ -41,7 +41,6 @@ def appointment_token(request):
             if not doctor_details.is_authorized:
                 return JsonResponse({'ERR': 'Doctor is not authorized.'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(e)
             return JsonResponse({'ERR': 'Object not found.'}, status=404)
         # Date validation
         try:
@@ -93,7 +92,12 @@ def appointment_token(request):
         else:
             try:
                 apt_tokens = AptToken.objects.filter(patient=user)
-                return JsonResponse(AptTokenSerializer(apt_tokens, many=True).data, safe=False)
+                data = []
+                for token in apt_tokens:
+                    token_dict = dict(AptTokenSerializer(token).data)
+                    token_dict['doctor'] = token.doctor_details.doctor.name
+                    data.append(token_dict)
+                return JsonResponse(data, safe=False)
             except Exception as e:
                 return JsonResponse({'ERR': str(e)}, status=500)
     else:
@@ -218,7 +222,15 @@ def appointment(request):
                 return JsonResponse(appointment_data, safe=False)
             else:
                 patient_appointments = Appointment.objects.filter(token__patient=user)
-                return JsonResponse(AppointmentSerializer(patient_appointments, many=True).data, safe=False)
+                res_data = []
+                for patient_appt in patient_appointments:
+                    patient_appt_dict = dict(AppointmentSerializer(patient_appt).data)
+                    patient_appt_dict['doctor'] = patient_appt.token.doctor_details.doctor.name
+                    patient_appt_dict['slot'] = patient_appt.token.slot
+                    patient_appt_dict['symptoms'] = patient_appt.token.symptoms
+                    patient_appt_dict['token_posted'] = patient_appt.token.time_posted
+                    res_data.append(patient_appt_dict)
+                return JsonResponse(res_data, safe=False)
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=500)
     else:
