@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import users, users_id, signin, signout, doctor_details, check_auth, doctor_details_id
+from .views import users, users_id, signin, signout, doctor_details, check_auth, doctor_details_id, doctor_details_str
 
 urlpatterns = [
     path('', users),
@@ -8,5 +8,6 @@ urlpatterns = [
     path('signout/<int:id>/', signout),
     path('doctor_details/', doctor_details),
     path('check_auth/', check_auth),
-    path('doctor_details/<int:d_id>/', doctor_details_id)
+    path('doctor_details/<int:d_id>/', doctor_details_id),
+    path('doctor/<str:query>/', doctor_details_str),
 ]

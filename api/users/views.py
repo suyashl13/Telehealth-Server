@@ -332,3 +332,19 @@ def doctor_details_id(request, d_id):
             return JsonResponse(DoctorDetailSerializer(doctor_detail, context={'request': request}).data)
         except Exception as e:
             return JsonResponse({'ERR': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def doctor_details_str(request, query):
+    if request.method == 'GET':
+        try:
+            query_set = DoctorDetail.objects.filter(specializations__contains=query, is_authorized=True)
+            res_data = []
+            for query in query_set:
+                doc_ser = dict(DoctorDetailSerializer(query, context={'request': request}).data)
+                doc_ser['profile'] = dict(UserSerializers(query.doctor, context={'request': request}).data)
+                res_data.append(doc_ser)
+            return JsonResponse(res_data, safe=False)
+        except Exception as e:
+            return JsonResponse({'ERR': str(e)}, status=400)
+    else:
+        return JsonResponse({'ERR': "Invalid request method"}, status=401)

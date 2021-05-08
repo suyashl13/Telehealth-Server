@@ -22,8 +22,29 @@ class CustomUser(AbstractUser):
 
 
 class DoctorDetail(models.Model):
+    doc_choices = (
+        ('FAMILY PHYSICIAN', 'FAMILY PHYSICIAN'),
+        ('PODIATRIST', 'PODIATRIST'),
+        ('SPORTS MEDICINE PHYSICIAN', 'SPORTS MEDICINE PHYSICIAN'),
+        ('RADIOLOGIST', 'RADIOLOGIST'),
+        ('PREVENTIVE MEDICINE PHYSICIAN', 'PREVENTIVE MEDICINE PHYSICIAN'),
+        ('PHYSICAL MEDICINE AND REHABILITATION PHYSICIAN', 'PHYSICAL MEDICINE AND REHABILITATION PHYSICIAN'),
+        ('DERMATOLOGIST', 'DERMATOLOGIST'),
+        ('NUCLEAR MEDICINE PHYSICIAN', 'NUCLEAR MEDICINE PHYSICIAN'),
+        ('OPHTHALMOLOGIST', 'OPHTHALMOLOGIST'),
+        ('HOSPITALIST', 'HOSPITALIST'),
+        ('ALLERGISTS AND IMMUNOLOGIST', 'ALLERGISTS AND IMMUNOLOGIST'),
+        ('NEUROLOGIST', 'NEUROLOGIST'),
+        ('PATHOLOGIST', 'PATHOLOGIST'),
+        ('ANESTHESIOLOGIST', 'ANESTHESIOLOGIST'),
+        ('SURGEON', 'SURGEON'),
+        ('OBSTETRICIANS AND GYNECOLOGIST', 'OBSTETRICIANS AND GYNECOLOGIST'),
+        ('PSYCHIATRIST', 'PSYCHIATRIST'),
+        ('PEDIATRICIAN', 'PEDIATRICIAN'),
+    )
+
     doctor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, unique=True)
-    specializations = models.CharField(max_length=150, default='')
+    specializations = models.CharField(max_length=150, default='', choices=doc_choices)
     certificate = models.FileField(upload_to='certs/')
     bio = models.CharField(max_length=150)
     open_time = models.CharField(max_length=20)

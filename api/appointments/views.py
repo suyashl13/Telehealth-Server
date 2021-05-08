@@ -4,7 +4,7 @@ from .models import AptToken, Appointment
 from .serializers import AptTokenSerializer, AppointmentSerializer
 from ..users.models import CustomUser, DoctorDetail
 from ..views import check_authentication
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date
 from ..users.serializers import UserSerializers
@@ -271,6 +271,40 @@ def appointment_id(request, id):
             apptmt['patient_note'] = appointment_obj.token.note
             apptmt['patient_slot'] = appointment_obj.token.slot
             apptmt['patient_symptoms'] = appointment_obj.token.symptoms
-            return JsonResponse({'patient': UserSerializers(patient, context={'request': request}).data, 'appointment': apptmt})
+            return JsonResponse(
+                {'patient': UserSerializers(patient, context={'request': request}).data, 'appointment': apptmt})
         else:
             return JsonResponse(AppointmentSerializer(appointment_obj).data)
+
+
+def get_four_days_arr():
+    four_days_arr = []
+    date_today = datetime.now()
+
+    for i in range(1, 5):
+        temp_date = date_today + timedelta(days=i)
+        four_days_arr.append(temp_date)
+    return four_days_arr
+
+
+def get_available_slots(request, doc_id):
+    if request.method == 'GET':
+        try:
+            DoctorDetail.objects.get(pk=doc_id)
+        except Exception:
+            return JsonResponse({"ERR": "Invalid Doctor id."})
+        try:
+            slots = ['Morning', 'Afternoon', 'Evening']
+            availability = {}
+            for day in get_four_days_arr():
+                temp_avl_slots = []
+                for slot in slots:
+                    aptkn_day = AptToken.objects.filter(date_expected=day.date(), doctor_details__id=doc_id, slot=slot)
+                    if len(aptkn_day) < 5:
+                        temp_avl_slots.append(slot)
+                        availability[day.strftime('%d-%m-%Y')] = temp_avl_slots
+            return JsonResponse(availability, safe=False)
+        except Exception as e:
+            return JsonResponse({"ERR": str(e)})
+    else:
+        return JsonResponse({"ERR": "Invalid request method."}, status=403)
