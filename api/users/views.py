@@ -122,7 +122,7 @@ def users_id(request, id):
         else:
             del res
 
-        # Update usermodel
+        # Update usermod
         try:
             user = CustomUser.objects.get(pk=request.headers['Uid'])
             if email is not None:
@@ -131,13 +131,18 @@ def users_id(request, id):
             if phone is not None:
                 if user.phone != phone:
                     user.phone = phone
+            if password == 'null':
+                password = None
             if password is not None:
                 user.set_password(raw_password=password)
+            if profile_photo == 'null':
+                user.profile_photo = None
             if profile_photo is not None:
                 user.profile_photo = profile_photo
             user.save()
             return JsonResponse(UserSerializers(user, context={'request': request}).data)
         except Exception as e:
+            print(e)
             return JsonResponse({'ERR': str(e)}, status=500)
 
     if request.method == 'GET':
@@ -165,7 +170,7 @@ def users_id(request, id):
                         return JsonResponse({'doctor_details': False, 'user': UserSerializers(user).data})
                     else:
                         return JsonResponse({'ERR': str(e)}, status=500)
-            return JsonResponse(UserSerializers(user).data)
+            return JsonResponse(UserSerializers(user, context={'request': request}).data)
         except:
             return JsonResponse({'ERR': 'User not found.'}, status=404)
 
