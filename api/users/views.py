@@ -227,7 +227,7 @@ def signin(request):
                     else:
                         return JsonResponse({'ERR': str(e)}, status=500)
             login(request, user)
-            return JsonResponse({'auth_token': token, 'user': UserSerializers(user).data})
+            return JsonResponse({'auth_token': token, 'user': UserSerializers(user, context={'request': request}).data})
         else:
             return JsonResponse({'ERR': 'Invalid auth credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     else:

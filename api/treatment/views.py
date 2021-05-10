@@ -87,6 +87,7 @@ def treatment(request):
                     tmt = dict(TreatmentSerializer(trtmt).data)
                     tmt['symptoms'] = trtmt.appointment.token.symptoms
                     tmt['doctor'] = trtmt.appointment.token.doctor_details.doctor.name
+                    tmt['doctor_phone'] = trtmt.appointment.token.doctor_details.doctor.phone
                     tmt['doctor_specialization'] = trtmt.appointment.token.doctor_details.specializations
                     tmt['patient'] = dict(UserSerializers(trtmt.patient).data)
                     tmt['medecines'] = get_meds_by_treatment_id(tmt['id'])
