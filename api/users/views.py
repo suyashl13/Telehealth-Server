@@ -237,14 +237,13 @@ def signin(request):
 @csrf_exempt
 def signout(request, id):
     if request.method == 'GET':
-        UserModel = CustomUser()
         try:
-            user = UserModel.objects.get(pk=id)
+            user = CustomUser.objects.get(pk=id)
             user.auth_token = "0"
             user.save()
             logout(request)
-        except:
-            return JsonResponse({'ERR': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'ERR': str(e)}, status=404)
         return JsonResponse({'INFO': 'Logged out successfully'})
 
     else:

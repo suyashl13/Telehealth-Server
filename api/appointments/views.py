@@ -300,7 +300,7 @@ def get_available_slots(request, doc_id):
                 temp_avl_slots = []
                 for slot in slots:
                     aptkn_day = AptToken.objects.filter(date_expected=day.date(), doctor_details__id=doc_id, slot=slot)
-                    if len(aptkn_day) < 5:
+                    if len(aptkn_day) < 4:
                         temp_avl_slots.append(slot)
                         availability[day.strftime('%d-%m-%Y')] = temp_avl_slots
             return JsonResponse(availability, safe=False)

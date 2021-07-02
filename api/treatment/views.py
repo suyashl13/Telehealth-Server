@@ -76,7 +76,7 @@ def treatment(request):
                 for trtmt in treatments:
                     tmt = dict(TreatmentSerializer(trtmt).data)
                     tmt['symptoms'] = trtmt.appointment.token.symptoms
-                    tmt['patient'] = dict(UserSerializers(trtmt.patient).data)
+                    tmt['patient'] = dict(UserSerializers(trtmt.patient, context={'request': request}).data)
                     tmt['medecines'] = get_meds_by_treatment_id(tmt['id'])
                     all_treatments.append(tmt)
                 return JsonResponse(all_treatments, safe=False)
