@@ -26,9 +26,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CORS_ORIGIN_WHITELIST = (
-  'http://localhost:8000',
-)
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
@@ -110,11 +108,14 @@ WSGI_APPLICATION = 'telehealth_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'hbxpkdbr',
+        'USER': 'hbxpkdbr',
+        'PASSWORD': 'P2RYybH83t2nosQWqo5no0r6oFwsYuJ3',
+        'HOST': 'satao.db.elephantsql.com',
+        'PORT': 5432,
     }
 }
-
 
 ASGI_APPLICATION = "telehealth_api.asgi.application"
 CHANNEL_LAYERS = {
