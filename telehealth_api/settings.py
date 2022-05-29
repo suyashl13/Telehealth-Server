@@ -108,12 +108,8 @@ WSGI_APPLICATION = 'telehealth_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'hbxpkdbr',
-        'USER': 'hbxpkdbr',
-        'PASSWORD': 'P2RYybH83t2nosQWqo5no0r6oFwsYuJ3',
-        'HOST': 'satao.db.elephantsql.com',
-        'PORT': 5432,
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
